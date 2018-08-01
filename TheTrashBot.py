@@ -1,8 +1,6 @@
 import discord
 import config
 
-#TOKEN = 'NDczOTkxNDg5NTA5MzkyMzk0.DkJ_WQ.j7ZNuJUWDlpexd6EuKmnyejNoeQ'
-
 client = discord.Client()
 
 @client.event
@@ -23,4 +21,3 @@ async def on_ready():
     print('------')
 
 client.run(config.api_key)
-#client.run(TOKEN)
