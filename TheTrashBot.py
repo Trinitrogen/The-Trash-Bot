@@ -24,10 +24,11 @@ async def on_message(message):
         for line in input_list:
             Trashbin.write(line + "\n")
         Trashbin.close()
+        msg = "Added to Dumpster"
+        await client.send_message(message.channel, msg)
 
     if message.content.startswith('!help'):
         embed = discord.Embed(title="The Trash Bot", description="The shitposting bot we all deserve", color=0x00ff00)
-        embed.add_field(name="!add", value="Puts a post in the dumpster", inline=False)
         embed.add_field(name="!trash", value="Picks a post from the dumpster", inline=False)
         embed.add_field(name="!trashhelp", value="lists all current commands", inline=False)
 
