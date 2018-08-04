@@ -1,6 +1,7 @@
 import discord
 import config
 import random
+import shlex
 
 client = discord.Client()
 
@@ -19,7 +20,7 @@ async def on_message(message):
 
     if message.content.startswith('!add'):
         Trashbin = open('Dumpster.txt', 'a')
-        input_list = message.content.split()
+        input_list = shlex.split(message.content)
         input_list.pop(0)
         for line in input_list:
             Trashbin.write(line + "\n")
@@ -28,9 +29,11 @@ async def on_message(message):
         await client.send_message(message.channel, msg)
 
     if message.content.startswith('!help'):
-        embed = discord.Embed(title="The Trash Bot", description="The shitposting bot we all deserve", color=0x00ff00)
+        embed = discord.Embed(title="The Trash Bot", description="The shitposting bot we all deserve. Contribute at https://github.com/Trinitrogen/The-Trash-Bot", color=0x00ff00)
         embed.add_field(name="!trash", value="Picks a post from the dumpster", inline=False)
-        embed.add_field(name="!trashhelp", value="lists all current commands", inline=False)
+        embed.add_field(name="!add", value="Follow by URL or sentance is quotes")
+        embed.add_field(name="!help", value="lists all current commands", inline=False)
+
 
         msg = 'http://i.imgur.com/aZZTF0r.gifv'.format(message)
 
