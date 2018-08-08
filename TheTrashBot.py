@@ -2,6 +2,8 @@ import discord
 import config
 import random
 import shlex
+import sqlite3
+from datetime import datetime, time
 
 client = discord.Client()
 
@@ -12,24 +14,19 @@ async def on_message(message):
         return
 
     if message.content.startswith('!trash'):
-        Trashbin = open('Dumpster.txt')
-        input_list = Trashbin.read().splitlines()
-        msg = random.choice(input_list).format(message)
+        db = sqlite3.connect('Dumpster.db')
+        cursor = db.cursor()
+        cursor.execute('SELECT url FROM dumpster ORDER BY RANDOM() LIMIT 1')
+        trash = str(cursor.fetchone()[0])
+        msg = trash.format(message)
         await client.send_message(message.channel, msg)
-        Trashbin.close()
 
     if message.content.startswith('!add'):
-        Trashbin = open('Dumpster.txt', 'a')
-        input_list = shlex.split(message.content)
-        input_list.pop(0)
-        for line in input_list:
-            Trashbin.write(line + "\n")
-        Trashbin.close()
-        msg = "Added to Dumpster"
+        msg = "add Temporarily Disabled"
         await client.send_message(message.channel, msg)
 
     if message.content.startswith('!help'):
-        embed = discord.Embed(title="The Trash Bot", description="The shitposting bot we all deserve. Contribute at https://github.com/Trinitrogen/The-Trash-Bot", color=0x00ff00)
+        embed = discord.Embed(title="The Trash Bot", description="The bot we all deserve. Contribute at https://github.com/Trinitrogen/The-Trash-Bot", color=0x00ff00)
         embed.add_field(name="!trash", value="Picks a post from the dumpster", inline=False)
         embed.add_field(name="!add", value="Follow by URL or sentance is quotes")
         embed.add_field(name="!help", value="lists all current commands", inline=False)
