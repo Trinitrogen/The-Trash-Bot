@@ -22,8 +22,19 @@ async def on_message(message):
         await client.send_message(message.channel, msg)
 
     if message.content.startswith('!add'):
-        msg = "add Temporarily Disabled"
-        await client.send_message(message.channel, msg)
+        db = sqlite3.connect('Dumpster.db')
+        cursor = db.cursor()
+        insert_sql = 'INSERT INTO dumpster (url, author, date) VALUES (?, ?, ?)'
+        input_list = shlex.split(message.content)
+        input_list.pop(0)
+        for trash in input_list:
+            try:
+                cursor.execute(insert_sql, (trash, '{0.author.mention}'.format(message), datetime.now()))
+                db.commit()
+                await client.send_message(message.channel, "Added to the dumpster")
+            except sqlite3.IntegrityError as e:
+                await client.send_message(message.channel, "Uh oh, this trash is already in the dumpster")
+                break
 
     if message.content.startswith('!help'):
         embed = discord.Embed(title="The Trash Bot", description="The bot we all deserve. Contribute at https://github.com/Trinitrogen/The-Trash-Bot", color=0x00ff00)
