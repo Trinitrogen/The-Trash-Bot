@@ -16,10 +16,27 @@ async def on_message(message):
     if message.content.startswith('!trash'):
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
-        cursor.execute('SELECT url FROM dumpster ORDER BY RANDOM() LIMIT 1')
-        trash = str(cursor.fetchone()[0])
-        msg = trash.format(message)
+        cursor.execute('SELECT url, id FROM dumpster ORDER BY RANDOM() LIMIT 1')
+        trash_tuple = cursor.fetchone()
+        trash = str(trash_tuple[0])
+        id= str(trash_tuple[1])
+        msg = trash.format(message) + " [TrashID: " + id + "]"
         await client.send_message(message.channel, msg)
+
+    if message.content.startswith('!blame'):
+        db = sqlite3.connect('Dumpster.db')
+        cursor = db.cursor()
+        input_list = shlex.split(message.content)
+        input_list.pop(0)
+        strID = str(input_list[0])
+        cursor.execute('SELECT author, date FROM dumpster WHERE id = ' + str(input_list[0]))
+        blame_tuple = cursor.fetchone()
+        author = blame_tuple[0]
+        date = blame_tuple[1]
+        msg = "You can blame " + author + " for adding that trash on " + date
+        await client.send_message(message.channel, msg)
+
+
 
     if message.content.startswith('!add'):
         db = sqlite3.connect('Dumpster.db')
@@ -40,6 +57,7 @@ async def on_message(message):
         embed = discord.Embed(title="The Trash Bot", description="The bot we all deserve. Contribute at https://github.com/Trinitrogen/The-Trash-Bot", color=0x00ff00)
         embed.add_field(name="!trash", value="Picks a post from the dumpster", inline=False)
         embed.add_field(name="!add", value="Follow by URL or sentance is quotes")
+        embed.add_field(name="!blame [TrashID]", value="Blame whoever added [TrashID] to the dumpster")
         embed.add_field(name="!help", value="lists all current commands", inline=False)
 
 
