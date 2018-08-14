@@ -13,6 +13,15 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    if message.content.startswith('!count'):
+        db = sqlite3.connect('Dumpster.db')
+        cursor = db.cursor()
+        cursor.execute('SELECT id FROM dumpster')
+        result = cursor.fetchall()
+        msg = "The dumpster currently has " + str(len(result)) + " pieces of trash."
+        await client.send_message(message.channel, msg)
+
+
     if message.content.startswith('!trash'):
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
