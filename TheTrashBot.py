@@ -3,7 +3,7 @@ import config
 import random
 import shlex
 import sqlite3
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 client = discord.Client()
 
@@ -16,12 +16,13 @@ async def on_message(message):
     if message.content.startswith('!trash'):
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
-        date_sql = 'UPDATE dumpster SET last_posted=? WHERE id=?'
-        cursor.execute('SELECT url, id FROM dumpster ORDER BY RANDOM() LIMIT 1')
+        date_sql = 'UPDATE dumpster SET last_posted=date("now") WHERE id=?'
+        select_sql = "SELECT url, id FROM dumpster WHERE last_posted IS NULL OR last_posted < (SELECT DATETIME('now', '-7 day')) ORDER BY RANDOM() LIMIT 1"
+        cursor.execute(select_sql)
         trash_tuple = cursor.fetchone()
         trash = str(trash_tuple[0])
-        id= str(trash_tuple[1])
-        cursor.execute(date_sql, (datetime.now(), id))
+        id = str(trash_tuple[1])
+        cursor.execute(date_sql, (id,))
         db.commit()
         msg = trash.format(message) + " [TrashID: " + id + "]"
         await client.send_message(message.channel, msg)
