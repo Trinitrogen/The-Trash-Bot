@@ -93,6 +93,7 @@ async def on_message(message):
         embed.add_field(name="!trash", value="Picks a post from the dumpster", inline=False)
         embed.add_field(name="!add", value="Follow by URL or sentance is quotes")
         embed.add_field(name="!blame [TrashID]", value="Blame whoever added [TrashID] to the dumpster")
+        embed.add_field(name="!burn [TrashID]", value="Burn trash, if enough people burn it, it will go away forever")
         embed.add_field(name="!help", value="lists all current commands", inline=False)
 
 
