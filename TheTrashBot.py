@@ -21,12 +21,32 @@ async def on_message(message):
         msg = "The dumpster currently has " + str(len(result)) + " pieces of trash."
         await client.send_message(message.channel, msg)
 
+    if message.content.startswith('!burn'):
+        db = sqlite3.connect('Dumpster.db')
+        cursor = db.cursor()
+        decrement_sql = 'UPDATE dumpster SET score = score - 1 WHERE id = ?'
+        report_sql = 'SELECT score FROM dumpster WHERE id = ?'
+        zero_sql = 'UPDATE dumpster SET score = 0 WHERE id = ?'
+        input_list = shlex.split(message.content)
+        input_list.pop(0)
+        id = str(input_list[0])
+        cursor.execute(decrement_sql, (id,))
+        db.commit()
+        cursor.execute(report_sql, (id,))
+        results = cursor.fetchone()
+        msg = 'Score or TrashID is ' + str(results[0])
+        if results[0] < 1:
+            msg = msg + ', setting that trash on fire... you will never see it again... probably...'
+            cursor.execute(zero_sql, (id,))
+            db.commit()
+        await client.send_message(message.channel, msg)
+
 
     if message.content.startswith('!trash'):
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
         date_sql = 'UPDATE dumpster SET last_posted=date("now") WHERE id=?'
-        select_sql = "SELECT url, id FROM dumpster WHERE last_posted IS NULL OR last_posted < (SELECT DATETIME('now', '-7 day')) ORDER BY RANDOM() LIMIT 1"
+        select_sql = "SELECT url, id FROM dumpster WHERE (last_posted IS NULL OR last_posted < (SELECT DATETIME('now', '-7 day'))) AND score !=0 ORDER BY RANDOM() LIMIT 1"
         cursor.execute(select_sql)
         trash_tuple = cursor.fetchone()
         trash = str(trash_tuple[0])
@@ -42,7 +62,9 @@ async def on_message(message):
         input_list = shlex.split(message.content)
         input_list.pop(0)
         strID = str(input_list[0])
-        cursor.execute('SELECT author, date FROM dumpster WHERE id = ' + str(input_list[0]))
+        blame_sql = 'SELECT author, date FROM dumpster WHERE id =?'
+        #cursor.execute('SELECT author, date FROM dumpster WHERE id = ' + str(input_list[0]))
+        cursor.execute(blame_sql, (strID,))
         blame_tuple = cursor.fetchone()
         author = blame_tuple[0]
         date = blame_tuple[1]
