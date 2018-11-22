@@ -46,12 +46,14 @@ async def on_message(message):
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
         date_sql = 'UPDATE dumpster SET last_posted=date("now") WHERE id=?'
+        update_sql = 'UPDATE dumpster SET score = score - 1 WHERE id = ?'
         select_sql = "SELECT url, id FROM dumpster WHERE (last_posted IS NULL OR last_posted < (SELECT DATETIME('now', '-7 day'))) AND score !=0 ORDER BY RANDOM() LIMIT 1"
         cursor.execute(select_sql)
         trash_tuple = cursor.fetchone()
         trash = str(trash_tuple[0])
         id = str(trash_tuple[1])
         cursor.execute(date_sql, (id,))
+        cursor.execute(update_sql, (id,))
         db.commit()
         msg = trash.format(message) + " [TrashID: " + id + "]"
         await client.send_message(message.channel, msg)
@@ -63,7 +65,6 @@ async def on_message(message):
         input_list.pop(0)
         strID = str(input_list[0])
         blame_sql = 'SELECT author, date FROM dumpster WHERE id =?'
-        #cursor.execute('SELECT author, date FROM dumpster WHERE id = ' + str(input_list[0]))
         cursor.execute(blame_sql, (strID,))
         blame_tuple = cursor.fetchone()
         author = blame_tuple[0]
