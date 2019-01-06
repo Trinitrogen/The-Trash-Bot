@@ -7,6 +7,7 @@ from datetime import datetime, time, timedelta
 
 client = discord.Client()
 
+
 @client.event
 async def on_message(message):
     # we do not want the bot to reply to itself
@@ -41,20 +42,25 @@ async def on_message(message):
             db.commit()
         await client.send_message(message.channel, msg)
 
-
     if message.content.startswith('!trash'):
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
+
         date_sql = 'UPDATE dumpster SET last_posted=date("now") WHERE id=?'
         update_sql = 'UPDATE dumpster SET score = score - 1 WHERE id = ?'
         select_sql = "SELECT url, id FROM dumpster WHERE (last_posted IS NULL OR last_posted < (SELECT DATETIME('now', '-7 day'))) AND score !=0 ORDER BY RANDOM() LIMIT 1"
+        log_sql = 'INSERT INTO log (TrashID, user, date) VALUES (?,?,?)'
+        
         cursor.execute(select_sql)
         trash_tuple = cursor.fetchone()
         trash = str(trash_tuple[0])
         id = str(trash_tuple[1])
+
         cursor.execute(date_sql, (id,))
         cursor.execute(update_sql, (id,))
+        cursor.execute(log_sql, (id, '{0.author.mention}'.format(message), datetime.now()))
         db.commit()
+
         msg = trash.format(message) + " [TrashID: " + id + "]"
         await client.send_message(message.channel, msg)
 
@@ -71,8 +77,6 @@ async def on_message(message):
         date = blame_tuple[1]
         msg = "You can blame " + author + " for adding that trash on " + date
         await client.send_message(message.channel, msg)
-
-
 
     if message.content.startswith('!add'):
         db = sqlite3.connect('Dumpster.db')
@@ -96,7 +100,6 @@ async def on_message(message):
         embed.add_field(name="!blame [TrashID]", value="Blame whoever added [TrashID] to the dumpster")
         embed.add_field(name="!burn [TrashID]", value="Burn trash, if enough people burn it, it will go away forever")
         embed.add_field(name="!help", value="lists all current commands", inline=False)
-
 
         msg = 'http://i.imgur.com/aZZTF0r.gifv'.format(message)
 
