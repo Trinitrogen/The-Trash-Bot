@@ -14,11 +14,16 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('!stats'):
+    if message.content.startswith('!zeros'):
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
         count_sql = 'SELECT count(*) FROM dumpster'
-        stats_sql = 'SELECT author,count(*) FROM dumpster GROUP BY author ORDER BY count(*) DESC'
+        #stats_sql = 'SELECT author,count(*) FROM dumpster GROUP BY author ORDER BY count(*) DESC'
+        stats_sql = """ select author, log_count, dump_count, round((dump_count * 1.0) / (log_count * 1.0),1) AS Ratio, dump_count - log_count AS difference
+FROM (SELECT user,count(1) log_count FROM log GROUP BY user) l
+JOIN (SELECT author,count(1) dump_count
+FROM dumpster GROUP BY author ) d
+on d.author = l.user ORDER BY ratio ASC LIMIT 3;"""
         active_sql = 'SELECT count(*) FROM dumpster WHERE score != 0'
         cursor.execute(count_sql)
         count = cursor.fetchall()
@@ -27,12 +32,37 @@ async def on_message(message):
         cursor.execute(active_sql)
 
         stats_msg = ''
-        for x in stats:
-            stats_msg = stats_msg + str(x[0]) + '\t' + str(x[1]) + '\n'
+        for row in stats:
+            stats_msg = stats_msg  + str(row[0]) + '\tRatio: ' + str(row[3]) + '\tDifference: ' + str(row[4]) + '\n'
 
 
         count_msg = "The dumpster currently has " + str(count) + " pieces of trash in the dumpster"
-        await client.send_message(message.channel, 'Top Contributors to the dumpster:\n' + stats_msg)
+        await client.send_message(message.channel, 'The Bottom 3 Contributors to the dumpster:\n' + stats_msg)
+
+    if message.content.startswith('!heros'):
+        db = sqlite3.connect('Dumpster.db')
+        cursor = db.cursor()
+        count_sql = 'SELECT count(*) FROM dumpster'
+        #stats_sql = 'SELECT author,count(*) FROM dumpster GROUP BY author ORDER BY count(*) DESC'
+        stats_sql = """ select author, log_count, dump_count, round((dump_count * 1.0) / (log_count * 1.0),1) AS Ratio, dump_count - log_count AS difference
+FROM (SELECT user,count(1) log_count FROM log GROUP BY user) l
+JOIN (SELECT author,count(1) dump_count
+FROM dumpster GROUP BY author ) d
+on d.author = l.user ORDER BY ratio DESC LIMIT 3;"""
+        active_sql = 'SELECT count(*) FROM dumpster WHERE score != 0'
+        cursor.execute(count_sql)
+        count = cursor.fetchall()
+        cursor.execute(stats_sql)
+        stats = cursor.fetchall()
+        cursor.execute(active_sql)
+
+        stats_msg = ''
+        for row in stats:
+            stats_msg = stats_msg  + str(row[0]) + '\tRatio: ' + str(row[3]) + '\tDifference: ' + str(row[4]) + '\n'
+
+
+        count_msg = "The dumpster currently has " + str(count) + " pieces of trash in the dumpster"
+        await client.send_message(message.channel, 'Top 3 Contributors to the dumpster:\n' + stats_msg)
 
     if message.content.startswith('git gud'):
         await client.send_message(message.channel, "```error: branch 'gud' not found```")
@@ -122,6 +152,8 @@ async def on_message(message):
         embed.add_field(name="!add", value="Follow by URL or sentance is quotes")
         embed.add_field(name="!blame [TrashID]", value="Blame whoever added [TrashID] to the dumpster")
         embed.add_field(name="!burn [TrashID]", value="Burn trash, if enough people burn it, it will go away forever")
+        embed.add_field(name="!heros", value="Lists Top 3 Contributors based on ratio how much trash they ontribute over how much they consume")
+        embed.add_field(name="!zeros", value="Lists Bottom 3 Contributors based on ratio how much trash they ontribute over how much they consume")
         embed.add_field(name="!help", value="lists all current commands", inline=False)
 
         msg = 'http://i.imgur.com/aZZTF0r.gifv'.format(message)
@@ -136,6 +168,6 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
-    await client.change_presence(game=discord.Game(name="Digging through trash"))
+    await client.change_presence(game=discord.Game(name="Garbage Truck Simulator"))
 
 client.run(config.api_key)
