@@ -14,6 +14,29 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    if message.content.startswith('!stats'):
+        db = sqlite3.connect('Dumpster.db')
+        cursor = db.cursor()
+        count_sql = 'SELECT count(*) FROM dumpster'
+        stats_sql = 'SELECT author,count(*) FROM dumpster GROUP BY author ORDER BY count(*) DESC'
+        active_sql = 'SELECT count(*) FROM dumpster WHERE score != 0'
+        cursor.execute(count_sql)
+        count = cursor.fetchall()
+        cursor.execute(stats_sql)
+        stats = cursor.fetchall()
+        cursor.execute(active_sql)
+
+        stats_msg = ''
+        for x in stats:
+            stats_msg = stats_msg + str(x[0]) + '\t' + str(x[1]) + '\n'
+
+
+        count_msg = "The dumpster currently has " + str(count) + " pieces of trash in the dumpster"
+        await client.send_message(message.channel, 'Top Contributors to the dumpster:\n' + stats_msg)
+
+    if message.content.startswith('git gud'):
+        await client.send_message(message.channel, "```error: branch 'gud' not found```")
+
     if message.content.startswith('!count'):
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
@@ -58,7 +81,7 @@ async def on_message(message):
 
         cursor.execute(date_sql, (id,))
         cursor.execute(update_sql, (id,))
-        cursor.execute(log_sql, (id, '{0.author.mention}'.format(message), datetime.now()))
+        cursor.execute(log_sql, (id, ('{0.author.mention}'.format(message)).replace('@!', '@'), datetime.now()))
         db.commit()
 
         msg = trash.format(message) + " [TrashID: " + id + "]"
@@ -113,5 +136,6 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
+    await client.change_presence(game=discord.Game(name="Digging through trash"))
 
 client.run(config.api_key)
