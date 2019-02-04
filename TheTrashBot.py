@@ -3,6 +3,7 @@ import config
 import random
 import shlex
 import sqlite3
+import requests
 from datetime import datetime, time, timedelta
 
 client = discord.Client()
@@ -114,8 +115,23 @@ on d.author = l.user ORDER BY ratio DESC LIMIT 3;"""
         cursor.execute(log_sql, (id, ('{0.author.mention}'.format(message)).replace('@!', '@'), datetime.now()))
         db.commit()
 
-        msg = trash.format(message) + " [TrashID: " + id + "]"
-        await client.send_message(message.channel, msg)
+		r = requests.get(trash.format(message), allow_redirects=False)
+		
+		if r.status_code != '200':
+			decrement_sql = 'UPDATE dumpster SET score = score - 1 WHERE id = ?'
+			report_sql = 'SELECT score FROM dumpster WHERE id = ?'
+			zero_sql = 'UPDATE dumpster SET score = 0 WHERE id = ?'
+			cursor.execute(decrement_sql, (id,))
+			db.commit()
+			cursor.execute(report_sql, (id,))
+			db.commit()
+			cursor.execute(zero_sql, (id,))
+            db.commit()
+			msg = 'Trash ID ' + id + ' is a dead link, purging from DB...'
+			await client.send_message(message.channel, msg)
+		else:
+			msg = trash.format(message) + " [TrashID: " + id + "]"
+			await client.send_message(message.channel, msg)
 
     if message.content.startswith('!blame'):
         db = sqlite3.connect('Dumpster.db')
