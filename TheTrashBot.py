@@ -15,59 +15,53 @@ async def on_message(message):
         return
 
     if message.content.startswith('!zeros'):
+        """ SQL command for identifying the worst three contributors
+        It does this by calculating the ratio of how much trash they've
+        contributed over consumed. Loops through the tuple from fetchall
+        to build string """
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
-        count_sql = 'SELECT count(*) FROM dumpster'
-        #stats_sql = 'SELECT author,count(*) FROM dumpster GROUP BY author ORDER BY count(*) DESC'
-        stats_sql = """ select author, log_count, dump_count, round((dump_count * 1.0) / (log_count * 1.0),1) AS Ratio, dump_count - log_count AS difference
-FROM (SELECT user,count(1) log_count FROM log GROUP BY user) l
-JOIN (SELECT author,count(1) dump_count
-FROM dumpster GROUP BY author ) d
-on d.author = l.user ORDER BY ratio ASC LIMIT 3;"""
-        active_sql = 'SELECT count(*) FROM dumpster WHERE score != 0'
-        cursor.execute(count_sql)
-        count = cursor.fetchall()
+        stats_sql = """ select author, log_count, dump_count, 
+                    round((dump_count * 1.0) / (log_count * 1.0),1) AS Ratio, dump_count - log_count 
+                    AS difference
+                    FROM (SELECT user,count(1) log_count FROM log GROUP BY user) l
+                    JOIN (SELECT author,count(1) dump_count
+                    FROM dumpster GROUP BY author ) d
+                    on d.author = l.user ORDER BY ratio ASC LIMIT 3;"""
         cursor.execute(stats_sql)
         stats = cursor.fetchall()
-        cursor.execute(active_sql)
-
         stats_msg = ''
         for row in stats:
             stats_msg = stats_msg  + str(row[0]) + '\tRatio: ' + str(row[3]) + '\tDifference: ' + str(row[4]) + '\n'
-
-
-        count_msg = "The dumpster currently has " + str(count) + " pieces of trash in the dumpster"
         await client.send_message(message.channel, 'The Bottom 3 Contributors to the dumpster:\n' + stats_msg)
 
     if message.content.startswith('!heros'):
+        """ SQL command for identifying the best three contributors
+        It does this by calculating the ratio of how much trash they've
+        contributed over consumed. Loops through the tuple from fetchall
+        to build string """
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
-        count_sql = 'SELECT count(*) FROM dumpster'
-        #stats_sql = 'SELECT author,count(*) FROM dumpster GROUP BY author ORDER BY count(*) DESC'
-        stats_sql = """ select author, log_count, dump_count, round((dump_count * 1.0) / (log_count * 1.0),1) AS Ratio, dump_count - log_count AS difference
-FROM (SELECT user,count(1) log_count FROM log GROUP BY user) l
-JOIN (SELECT author,count(1) dump_count
-FROM dumpster GROUP BY author ) d
-on d.author = l.user ORDER BY ratio DESC LIMIT 3;"""
-        active_sql = 'SELECT count(*) FROM dumpster WHERE score != 0'
-        cursor.execute(count_sql)
-        count = cursor.fetchall()
+        stats_sql = """ select author, log_count, dump_count, round((dump_count * 1.0) / (log_count * 1.0),1) 
+                    AS Ratio, dump_count - log_count AS difference
+                    FROM (SELECT user,count(1) log_count FROM log GROUP BY user) l
+                    JOIN (SELECT author,count(1) dump_count
+                    FROM dumpster GROUP BY author ) d
+                    on d.author = l.user ORDER BY ratio DESC LIMIT 3;"""
         cursor.execute(stats_sql)
         stats = cursor.fetchall()
-        cursor.execute(active_sql)
-
         stats_msg = ''
         for row in stats:
             stats_msg = stats_msg  + str(row[0]) + '\tRatio: ' + str(row[3]) + '\tDifference: ' + str(row[4]) + '\n'
-
-
-        count_msg = "The dumpster currently has " + str(count) + " pieces of trash in the dumpster"
         await client.send_message(message.channel, 'Top 3 Contributors to the dumpster:\n' + stats_msg)
 
     if message.content.startswith('git gud'):
         await client.send_message(message.channel, "```error: branch 'gud' not found```")
 
     if message.content.startswith('!count'):
+        """ Using SQL statement to identify how
+        many total pieces of trash there is in the
+        dumpster """
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
         cursor.execute('SELECT id FROM dumpster')
@@ -76,6 +70,13 @@ on d.author = l.user ORDER BY ratio DESC LIMIT 3;"""
         await client.send_message(message.channel, msg)
 
     if message.content.startswith('!burn'):
+        """ Reduces the Score of a piece of
+        trash in the dumpster with decrement_sql to prevent reposts.
+        Uses shlex library to split the string and assigns the TrashID
+        to id . Uses report_sql to check the current score and message the chat
+        If its 0, it gives a forboding warning. If it gets
+        below 0, zero_sql brings it back to 0 beccause I'm a
+        bad programmer"""
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
         decrement_sql = 'UPDATE dumpster SET score = score - 1 WHERE id = ?'
@@ -96,14 +97,22 @@ on d.author = l.user ORDER BY ratio DESC LIMIT 3;"""
         await client.send_message(message.channel, msg)
 
     if message.content.startswith('!trash'):
+        """ Posts trash into the discord channel using
+        select_sql. It will select a random row that has
+        not been posted in the past 7 days. date_sql
+        sets last_posted column to today, and update_sql
+        decremets the trasn score. Finally the event is
+        logged into the log table with log_sql for
+        statistic purposes. If a user has a custom
+        name in the channel, their User ID sometimes
+        has a ! inserted into it, deleted before
+        being inserted into the table"""
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
-
         date_sql = 'UPDATE dumpster SET last_posted=date("now") WHERE id=?'
         update_sql = 'UPDATE dumpster SET score = score - 1 WHERE id = ?'
         select_sql = "SELECT url, id FROM dumpster WHERE (last_posted IS NULL OR last_posted < (SELECT DATETIME('now', '-7 day'))) AND score !=0 ORDER BY RANDOM() LIMIT 1"
         log_sql = 'INSERT INTO log (TrashID, user, date) VALUES (?,?,?)'
-        
         cursor.execute(select_sql)
         trash_tuple = cursor.fetchone()
         trash = str(trash_tuple[0])
@@ -118,6 +127,9 @@ on d.author = l.user ORDER BY ratio DESC LIMIT 3;"""
         await client.send_message(message.channel, msg)
 
     if message.content.startswith('!blame'):
+        """ Uses blame_sql to lookup the author
+        of a piece of trash and when it was inserted
+        into the dumpster. Message.content is message in Discord"""
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
         input_list = shlex.split(message.content)
@@ -132,6 +144,9 @@ on d.author = l.user ORDER BY ratio DESC LIMIT 3;"""
         await client.send_message(message.channel, msg)
 
     if message.content.startswith('!add'):
+        """ Used insert_sql to insert URL
+        into database as a new piece of trash.
+        Message.content is message in Discord"""
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
         insert_sql = 'INSERT INTO dumpster (url, author, date) VALUES (?, ?, ?)'
