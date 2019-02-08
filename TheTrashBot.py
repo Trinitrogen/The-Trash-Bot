@@ -21,8 +21,8 @@ async def on_message(message):
         to build string """
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
-        stats_sql = """ select author, log_count, dump_count, 
-                    round((dump_count * 1.0) / (log_count * 1.0),1) AS Ratio, dump_count - log_count 
+        stats_sql = """ select author, log_count, dump_count,
+                    round((dump_count * 1.0) / (log_count * 1.0),1) AS Ratio, dump_count - log_count
                     AS difference
                     FROM (SELECT user,count(1) log_count FROM log GROUP BY user) l
                     JOIN (SELECT author,count(1) dump_count
@@ -97,27 +97,25 @@ async def on_message(message):
         await client.send_message(message.channel, msg)
 
     if message.content.startswith('!trash'):
-        """ Posts trash into the discord channel using
-        select_sql. It will select a random row that has
-        not been posted in the past 7 days. date_sql
-        sets last_posted column to today, and update_sql
-        decremets the trasn score. Finally the event is
-        logged into the log table with log_sql for
-        statistic purposes. If a user has a custom
-        name in the channel, their User ID sometimes
-        has a ! inserted into it, deleted before
+        """ Posts trash into the discord channel using select_sql. It will select a
+        random row that has not been posted in the past 7 days. date_sql
+        sets last_posted column to today, and update_sql decremets the trash 
+        score. Finally the event is logged into the log table with log_sql for
+        statistic purposes. If a user has a custom name in the channel,
+        their User ID sometimes has a ! inserted into it, deleted before
         being inserted into the table"""
         db = sqlite3.connect('Dumpster.db')
         cursor = db.cursor()
         date_sql = 'UPDATE dumpster SET last_posted=date("now") WHERE id=?'
         update_sql = 'UPDATE dumpster SET score = score - 1 WHERE id = ?'
-        select_sql = "SELECT url, id FROM dumpster WHERE (last_posted IS NULL OR last_posted < (SELECT DATETIME('now', '-7 day'))) AND score !=0 ORDER BY RANDOM() LIMIT 1"
+        select_sql = """SELECT url, id FROM dumpster WHERE (last_posted IS
+                    NULL OR last_posted < (SELECT DATETIME('now', '-7 day')))
+                    AND score !=0 ORDER BY RANDOM() LIMIT 1"""
         log_sql = 'INSERT INTO log (TrashID, user, date) VALUES (?,?,?)'
         cursor.execute(select_sql)
         trash_tuple = cursor.fetchone()
         trash = str(trash_tuple[0])
         id = str(trash_tuple[1])
-
         cursor.execute(date_sql, (id,))
         cursor.execute(update_sql, (id,))
         cursor.execute(log_sql, (id, ('{0.author.mention}'.format(message)).replace('@!', '@'), datetime.now()))
